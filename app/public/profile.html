@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu perfil · Loja Ponto</title>
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body data-page="profile">
+<header class="top" id="top"></header>
+<main>
+<h1>Meu perfil</h1>
+<form id="profile" novalidate>
+  <label>Nome <input name="name" autocomplete="name"></label>
+  <label>E-mail <input name="email" type="email" readonly></label>
+  <label>Telefone <input name="phone" type="tel" autocomplete="tel" placeholder="(43) 99999-9999"></label>
+  <p class="error" role="alert"></p>
+  <p class="success" id="saved" role="status"></p>
+  <button>Salvar</button>
+</form>
+<h2>Meus pedidos</h2>
+<section id="orders"></section>
+</main>
+</body>
+</html>

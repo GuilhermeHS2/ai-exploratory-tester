@@ -1,0 +1,15 @@
+# Planted bug catalog: the ground truth the agent is scored against.
+# Written by hand, not by AI. Each bug is enabled with BUGS=<id> and implemented with
+# bug('<id>') on the server or //#if <id> ... //#else ... //#endif in app/public files.
+#
+# - id: B01
+#   flow: cart | checkout | register | login | search | profile | order
+#   type: functional | validation | calculation | ui | accessibility | state | security
+#   severity: low | medium | high | critical
+#   difficulty: easy | medium | hard   # hard = needs state, several steps, or a calculation check
+#   description: what is wrong, in one sentence
+#   repro:
+#     - step 1
+#   expected: what should happen
+#   actual: what happens with the bug on
+bugs: []

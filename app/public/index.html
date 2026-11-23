@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produtos · Loja Ponto</title>
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body data-page="catalog">
+<header class="top" id="top"></header>
+<main>
+<h1>Produtos</h1>
+<form id="search" class="toolbar" role="search" style="max-width:none;display:flex">
+  <input name="q" type="search" placeholder="Buscar produtos" aria-label="Buscar produtos">
+  <select name="categoria" aria-label="Categoria"></select>
+  <button>Buscar</button>
+</form>
+<p class="muted" id="results-count" aria-live="polite"></p>
+<section class="grid" id="products"></section>
+</main>
+</body>
+</html>

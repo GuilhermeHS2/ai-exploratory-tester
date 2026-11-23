@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Criar conta · Loja Ponto</title>
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body data-page="register">
+<header class="top" id="top"></header>
+<main>
+<h1>Criar conta</h1>
+<form id="register" novalidate>
+  <label>Nome completo <input name="name" autocomplete="name"></label>
+  <label>E-mail <input name="email" type="email" autocomplete="email"></label>
+  <label>Senha <input name="password" type="password" autocomplete="new-password"></label>
+  <label>Confirmar senha <input name="confirm" type="password" autocomplete="new-password"></label>
+  <p class="muted">A senha precisa ter pelo menos 8 caracteres.</p>
+  <p class="error" role="alert"></p>
+  <button>Criar conta</button>
+</form>
+<p>Já tem conta? <a href="/entrar">Entrar</a></p>
+</main>
+</body>
+</html>

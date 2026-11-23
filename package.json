@@ -1,0 +1,10 @@
+{
+  "name": "ai-exploratory-tester",
+  "private": true,
+  "description": "Exploratory testing agent (Claude + Playwright MCP), measured against a shop app with planted bugs",
+  "license": "MIT",
+  "scripts": {
+    "start": "node app/server.js",
+    "test:unit": "node --test app/flags.test.js"
+  }
+}

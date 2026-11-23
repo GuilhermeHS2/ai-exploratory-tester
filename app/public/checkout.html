@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finalizar compra · Loja Ponto</title>
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body data-page="checkout">
+<header class="top" id="top"></header>
+<main>
+<h1>Finalizar compra</h1>
+<form id="checkout" novalidate>
+  <fieldset>
+    <legend>Endereço de entrega</legend>
+    <label>CEP <input name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000"></label>
+    <label>Rua <input name="street" autocomplete="address-line1"></label>
+    <label>Número <input name="number"></label>
+    <label>Cidade <input name="city" autocomplete="address-level2"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Pagamento</legend>
+    <label><span><input type="radio" name="method" value="cartao" checked> Cartão de crédito</span></label>
+    <label><span><input type="radio" name="method" value="pix"> Pix</span></label>
+    <div id="card-fields" style="display:grid;gap:12px">
+      <label>Número do cartão <input name="card" inputmode="numeric" autocomplete="cc-number"></label>
+      <label>Validade (MM/AA) <input name="expiry" autocomplete="cc-exp" placeholder="MM/AA"></label>
+      <label>CVV <input name="cvv" inputmode="numeric" autocomplete="cc-csc"></label>
+    </div>
+  </fieldset>
+  <p>Total do pedido: <strong id="order-total"></strong></p>
+  <p class="error" role="alert"></p>
+  <button type="submit">Confirmar pedido</button>
+</form>
+</main>
+</body>
+</html>
