@@ -1,0 +1,3 @@
+run_id,report_id,title,actual,judge_match,judge_reason,human_match,labeled_by,note
+2026-11-23T19-37-32_claude-sonnet-5-5_v1_B01-B04-B07-B08-B10,R01,Usuário vê pedido de outra conta via /pedido?id=,"A conta 2 vê os itens, pagamento e total do pedido da conta 1",B10,"A different logged-in account opens another customer's order via /pedido?id= and sees items and total, which is the planted access-control defect.",,,
+2026-11-23T19-37-32_claude-sonnet-5-5_v1_B01-B04-B07-B08-B10,R02,"Total do carrinho não inclui o frete (R$ 19,90) quando o frete é cobrado","Frete mostra R$ 19,90 mas o Total fica R$ 54,90 (igual ao subtotal)",B07,"The cart page Total omits the R$ 19,90 shipping and equals the subtotal, which is the planted cart total defect.",,,
