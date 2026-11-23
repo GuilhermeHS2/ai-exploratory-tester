@@ -1,0 +1,55 @@
+name: agent
+
+# Manual only: each run spends API money. Needs the repository secret ANTHROPIC_API_KEY,
+# which is not configured yet, so this workflow fails until someone adds it.
+on:
+  workflow_dispatch:
+    inputs:
+      bugs:
+        description: 'Bug ids, comma separated, or "none" for the baseline'
+        default: 'B01,B04,B07,B08,B10'
+      model:
+        description: 'Model id'
+        default: 'claude-sonnet-5-5'
+      prompt:
+        description: 'Prompt version (prompts/<version>.md)'
+        default: 'v1'
+      runs:
+        description: 'Number of runs'
+        default: '1'
+      max_cost:
+        description: 'Cost cap per run, USD'
+        default: '3'
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      BUGS_IN: ${{ inputs.bugs }}
+      MODEL_IN: ${{ inputs.model }}
+      PROMPT_IN: ${{ inputs.prompt }}
+      RUNS_IN: ${{ inputs.runs }}
+      COST_IN: ${{ inputs.max_cost }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run the agent
+        run: npm run agent -- --bugs "$BUGS_IN" --model "$MODEL_IN" --prompt "$PROMPT_IN" --runs "$RUNS_IN" --max-cost "$COST_IN" --timeout-min 20
+      - name: Score
+        run: npm run score -- runs/*/
+      - run: npm run results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runs
+          path: |
+            runs/
+            results/
+          retention-days: 30
