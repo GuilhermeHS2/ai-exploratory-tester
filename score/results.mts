@@ -2,7 +2,8 @@
 // Copies each runs/<runId>/score.json to results/runs/<runId>.json so the tables can be rebuilt from the repo.
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { auditAgreement, describe } from './agreement.mts';
+import { auditRows, describe, syncAudits } from './agreement.mts';
+import { UNPLANTED_REAL } from './metrics.mts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const RUNS = join(ROOT, 'runs');
@@ -15,11 +16,19 @@ if (existsSync(RUNS)) {
   }
 }
 
+syncAudits();
+const audit = auditRows();
+
 type Score = { runId: string; model: string; promptVersion: string; enabledBugs: string[]; baseline: boolean; recall: number | null; precision: number | null; reports: number; falsePositives: number; duplicates: number; found: string[]; costUsd: number | null; durationMs: number; turns: number | null; stopReason: string };
 const scores: Score[] = readdirSync(join(OUT, 'runs'))
   .filter((f) => f.endsWith('.json'))
   .sort()
   .map((f) => JSON.parse(readFileSync(join(OUT, 'runs', f), 'utf8')));
+
+// Reports the judge called 'none' that a human marked as a real defect outside the answer key.
+// score.json is left as the judge wrote it; the split happens here.
+const unplanted = (s: Score) => audit.filter((r) => r.runId === s.runId && r.judge.toLowerCase() === 'none' && r.human.trim().toLowerCase() === UNPLANTED_REAL).length;
+const fps = (s: Score) => s.falsePositives - unplanted(s);
 
 const pct = (x: number | null | undefined) => (x === null || x === undefined ? 'n/a' : `${Math.round(x * 100)}%`);
 const usd = (x: number | null | undefined) => (x === null || x === undefined ? 'n/a' : `$${x.toFixed(2)}`);
@@ -34,21 +43,22 @@ for (const s of scores) {
 }
 
 const configLines = [
-  '| Model | Prompt | Runs with bugs | Recall, mean (min–max) | Precision, mean (min–max) | Baseline runs | False positives per baseline run | Mean cost per run |',
-  '|---|---|---|---|---|---|---|---|',
+  '| Model | Prompt | Runs with bugs | Recall, mean (min–max) | Precision, mean (min–max) | Baseline runs | False positives per baseline run | Unplanted real defects per baseline run | Mean cost per run |',
+  '|---|---|---|---|---|---|---|---|---|',
 ];
 for (const [k, g] of groups) {
   const bugRuns = g.filter((s) => !s.baseline);
   const base = g.filter((s) => s.baseline);
   const [model, prompt] = k.split('|');
-  const fp = mean(base.map((s) => s.falsePositives));
-  configLines.push(`| ${model} | ${prompt} | ${bugRuns.length} | ${spread(nums(bugRuns.map((s) => s.recall)), pct)} | ${spread(nums(bugRuns.map((s) => s.precision)), pct)} | ${base.length} | ${fp === null ? 'n/a' : fp.toFixed(1)} | ${usd(mean(nums(g.map((s) => s.costUsd))))} |`);
+  const fp = mean(base.map(fps));
+  const ur = mean(base.map(unplanted));
+  configLines.push(`| ${model} | ${prompt} | ${bugRuns.length} | ${spread(nums(bugRuns.map((s) => s.recall)), pct)} | ${spread(nums(bugRuns.map((s) => s.precision)), pct)} | ${base.length} | ${fp === null ? 'n/a' : fp.toFixed(1)} | ${ur === null ? 'n/a' : ur.toFixed(1)} | ${usd(mean(nums(g.map((s) => s.costUsd))))} |`);
 }
 
 const runLines = [
-  '| Run | Bugs on | Found | Recall | Precision | Reports | False positives | Duplicates | Cost | Minutes | Turns | Stop reason |',
-  '|---|---|---|---|---|---|---|---|---|---|---|---|',
-  ...scores.map((s) => `| ${s.runId} | ${s.enabledBugs.join(', ') || 'none (baseline)'} | ${s.found.join(', ') || '-'} | ${pct(s.recall)} | ${pct(s.precision)} | ${s.reports} | ${s.falsePositives} | ${s.duplicates} | ${usd(s.costUsd)} | ${(s.durationMs / 60000).toFixed(1)} | ${s.turns ?? 'n/a'} | ${s.stopReason} |`),
+  '| Run | Bugs on | Found | Recall | Precision | Reports | False positives | Unplanted real | Duplicates | Cost | Minutes | Turns | Stop reason |',
+  '|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+  ...scores.map((s) => `| ${s.runId} | ${s.enabledBugs.join(', ') || 'none (baseline)'} | ${s.found.join(', ') || '-'} | ${pct(s.recall)} | ${pct(s.precision)} | ${s.reports} | ${fps(s)} | ${unplanted(s)} | ${s.duplicates} | ${usd(s.costUsd)} | ${(s.durationMs / 60000).toFixed(1)} | ${s.turns ?? 'n/a'} | ${s.stopReason} |`),
 ];
 
 const table = [
@@ -58,7 +68,9 @@ const table = [
   '',
   ...runLines,
   '',
-  describe(auditAgreement()),
+  'Precision counts only planted bugs, as the judge scored them. "False positives" excludes reports a human marked `unplanted-real` (a real defect outside the answer key), shown in their own column.',
+  '',
+  describe(audit),
 ].join('\n');
 
 writeFileSync(join(OUT, 'results.md'), `# Results\n\n${table}\n`);

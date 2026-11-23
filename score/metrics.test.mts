@@ -35,13 +35,16 @@ test('metrics: a match to a bug that is not enabled is an error', () => {
   assert.throws(() => computeMetrics(['B01'], [{ reportId: 'R01', bugId: 'B02' }]), /not enabled/);
 });
 
-test('agreement: only rows a human filled count', () => {
-  assert.equal(agreement([{ judge: 'B01', human: '' }]), null);
+test('agreement: only rows Guilherme labeled count', () => {
+  assert.equal(agreement([{ judge: 'B01', human: '', labeledBy: '' }]), null);
+  assert.equal(agreement([{ judge: 'none', human: 'unplanted-real', labeledBy: 'orchestrator' }]), null);
   assert.deepEqual(agreement([
-    { judge: 'B01', human: 'b01' },
-    { judge: 'none', human: 'B04' },
-    { judge: 'B04', human: ' ' },
-  ]), { audited: 2, agree: 1, rate: 0.5 });
+    { judge: 'B01', human: 'b01', labeledBy: 'Guilherme' },
+    { judge: 'none', human: 'B04', labeledBy: 'Guilherme' },
+    { judge: 'none', human: 'unplanted-real', labeledBy: 'guilherme' }, // counts as agreeing with 'none'
+    { judge: 'B04', human: ' ', labeledBy: 'Guilherme' },
+    { judge: 'B04', human: 'none', labeledBy: 'orchestrator' },
+  ]), { audited: 3, agree: 2, rate: 2 / 3 });
 });
 
 test('csv: round trip with commas, quotes and newlines', () => {

@@ -18,10 +18,16 @@ export function computeMetrics(enabled: string[], matches: Match[]) {
   };
 }
 
-export function agreement(rows: { judge: string; human: string }[]) {
-  const filled = rows.filter((r) => r.human.trim() !== '');
+// The judge only answers a bug id or 'none'. A human may also answer 'unplanted-real': not a planted bug,
+// but a real defect of the base app. For agreement that counts as 'none'; results report it apart.
+export const UNPLANTED_REAL = 'unplanted-real';
+export const AUDITOR = 'guilherme'; // agreement counts only rows this person labeled
+
+export function agreement(rows: { judge: string; human: string; labeledBy: string }[]) {
+  const norm = (x: string) => (x.trim().toLowerCase() === UNPLANTED_REAL ? 'NONE' : x.trim().toUpperCase());
+  const filled = rows.filter((r) => r.human.trim() !== '' && r.labeledBy.trim().toLowerCase() === AUDITOR);
   if (!filled.length) return null;
-  const agree = filled.filter((r) => r.human.trim().toUpperCase() === r.judge.trim().toUpperCase()).length;
+  const agree = filled.filter((r) => norm(r.human) === norm(r.judge)).length;
   return { audited: filled.length, agree, rate: agree / filled.length };
 }
 

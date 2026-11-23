@@ -119,10 +119,10 @@ for (const dir of dirs) {
   const audit = join(dir, 'audit.csv');
   if (existsSync(audit)) console.log(`${audit} exists, left as is`);
   else {
-    const rows = [['run_id', 'report_id', 'title', 'actual', 'judge_match', 'judge_reason', 'human_match']];
+    const rows = [['run_id', 'report_id', 'title', 'actual', 'judge_match', 'judge_reason', 'human_match', 'labeled_by', 'note']];
     for (const m of score.matches) {
       const r = reports.find((x) => x.id === m.reportId)!;
-      rows.push([meta.runId, m.reportId, r.title, r.actual, m.bugId, m.reason, '']);
+      rows.push([meta.runId, m.reportId, r.title, r.actual, m.bugId, m.reason, '', '', '']);
     }
     writeFileSync(audit, toCsv(rows));
   }
