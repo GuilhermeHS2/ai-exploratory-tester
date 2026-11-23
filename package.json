@@ -5,6 +5,14 @@
   "license": "MIT",
   "scripts": {
     "start": "node app/server.js",
-    "test:unit": "node --test app/flags.test.js"
+    "test:unit": "node --test app/flags.test.js",
+    "test": "playwright test",
+    "typecheck": "tsc -p .",
+    "verify:bugs": "node scripts/verify-bugs.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
   }
 }
