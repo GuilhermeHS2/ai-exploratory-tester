@@ -51,6 +51,19 @@ test('the cart refuses a quantity above the stock @B06', async ({ page }) => {
   expect(cart.lines[0].qty).toBe(1);
 });
 
+test('a refused quantity reverts to the stored one and keeps the error', async ({ page }) => {
+  // Found by the agent on the baseline run: the input kept the refused value.
+  await addToCart(page, 'p06');
+  await page.goto('/carrinho');
+  const qty = page.getByLabel('Quantidade de Mouse Sem Fio');
+  const stock = (await (await page.request.get('/api/cart')).json()).lines[0].stock;
+  await qty.fill(String(stock + 1));
+  await qty.press('Enter');
+  await expect(page.locator('#cart-error')).toHaveText(`Só temos ${stock} unidade(s) em estoque.`);
+  await expect(qty).toHaveValue('1');
+  await expect(page.locator('[data-line="p06"]')).toContainText(brl(8990));
+});
+
 test('the cart total includes shipping @B07', async ({ page }) => {
   await addToCart(page, 'p06');
   await page.goto('/carrinho');

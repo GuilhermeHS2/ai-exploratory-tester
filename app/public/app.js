@@ -146,7 +146,11 @@ const pages = {
       const row = e.target.closest('[data-line]');
       if (!row) return;
       try { render(await api('PUT', '/api/cart', { productId: row.dataset.line, qty: Number(e.target.value) })); }
-      catch (err) { $('#cart-error').textContent = err.message; }
+      catch (err) {
+        // Re-render from the server so the input shows the stored quantity, then show the error.
+        render(await api('GET', '/api/cart'));
+        $('#cart-error').textContent = err.message;
+      }
     });
     $('#cart').addEventListener('click', async (e) => {
       if (e.target.dataset.remove) render(await api('PUT', '/api/cart', { productId: e.target.dataset.remove, qty: 0 }));
