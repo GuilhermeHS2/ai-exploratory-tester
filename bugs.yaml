@@ -1,5 +1,6 @@
 # Planted bug catalog: the ground truth the agent is scored against.
-# Written by hand, not by AI. Each bug is enabled with BUGS=<id> and implemented with
+# This is the answer key: never give it (or this repo's server code) to the agent.
+# Each bug is enabled with BUGS=<id> and implemented with
 # bug('<id>') on the server or //#if <id> ... //#else ... //#endif in app/public files.
 #
 # - id: B01
@@ -12,4 +13,129 @@
 #     - step 1
 #   expected: what should happen
 #   actual: what happens with the bug on
-bugs: []
+bugs:
+  - id: B01
+    flow: register
+    type: validation
+    severity: medium
+    difficulty: easy
+    description: Registration accepts a 7-character password although the rule (and the hint under the form) says at least 8.
+    repro:
+      - Open /cadastro
+      - Fill name, a new e-mail, password "abc1234" and the same confirmation
+      - Click "Criar conta"
+    expected: Error "A senha precisa ter pelo menos 8 caracteres." and the account is not created
+    actual: The account is created and the user is logged in
+
+  - id: B02
+    flow: checkout
+    type: ui
+    severity: low
+    difficulty: easy
+    description: An invalid CEP at checkout returns an English error message on the Portuguese page.
+    repro:
+      - Log in and add any product to the cart
+      - Open /checkout, type CEP "123", fill the other address fields, choose Pix
+      - Click "Confirmar pedido"
+    expected: Error "CEP inválido."
+    actual: Error "Invalid ZIP code."
+
+  - id: B03
+    flow: register
+    type: accessibility
+    severity: medium
+    difficulty: easy
+    description: The "Confirmar senha" field has only a placeholder and no label, so it has no accessible name for screen readers once typing starts.
+    repro:
+      - Open /cadastro
+      - Inspect the accessibility tree, or tab to the fourth field with a screen reader
+    expected: Every field is labelled; the confirmation field is announced as "Confirmar senha"
+    actual: The confirmation field is a bare password input with a placeholder and no label
+
+  - id: B04
+    flow: cart
+    type: calculation
+    severity: high
+    difficulty: medium
+    description: Percentage coupons are calculated on products plus shipping instead of on the products only.
+    repro:
+      - Add "Cafeteira Italiana 6 xícaras" (R$ 129,90) to the cart; shipping is R$ 19,90
+      - Apply coupon DESCONTO10
+    expected: Discount R$ 12,99 and total R$ 136,81
+    actual: Discount R$ 14,98 and total R$ 134,82
+
+  - id: B05
+    flow: cart
+    type: functional
+    severity: medium
+    difficulty: medium
+    description: The VIP20 minimum order (R$ 200,00 in products) is checked against products plus shipping, so smaller orders get the coupon.
+    repro:
+      - Add "Moedor de Café Manual" (R$ 189,00) to the cart
+      - Apply coupon VIP20
+    expected: Error "Pedido mínimo de R$ 200,00 para este cupom." and no discount
+    actual: VIP20 is applied with a R$ 37,80 discount
+
+  - id: B06
+    flow: cart
+    type: functional
+    severity: medium
+    difficulty: medium
+    description: Changing a quantity on the cart page skips the stock check, so the cart can hold more units than exist; the error only appears at checkout.
+    repro:
+      - Add "Fone Bluetooth Ônix" (3 in stock) to the cart
+      - On /carrinho change its quantity to 5
+      - Go to checkout and try to pay
+    expected: Error "Só temos 3 unidade(s) em estoque." on the cart page and the quantity stays at 1
+    actual: The cart accepts 5 units and totals them; checkout then fails with "estoque insuficiente"
+
+  - id: B07
+    flow: cart
+    type: calculation
+    severity: high
+    difficulty: medium
+    description: The total shown on the cart page leaves out shipping, so it is lower than the total charged at checkout.
+    repro:
+      - Add "Mouse Sem Fio" (R$ 89,90) to the cart; shipping is R$ 19,90
+      - Open /carrinho and compare the summary with /checkout
+    expected: Cart total R$ 109,80, the same as the checkout total
+    actual: Cart total R$ 89,90 while checkout shows R$ 109,80
+
+  - id: B08
+    flow: login
+    type: state
+    severity: high
+    difficulty: hard
+    description: Logging in drops the guest cart when the account already has a saved cart, instead of merging both.
+    repro:
+      - Log in, add "Cafeteira Italiana 6 xícaras" to the cart, log out
+      - As a guest, add "Caneca Térmica 500 ml"
+      - Log in again and open /carrinho
+    expected: The cart has both products (2 items in the header)
+    actual: Only the cafeteira is there; the caneca added as a guest is gone
+
+  - id: B09
+    flow: checkout
+    type: state
+    severity: critical
+    difficulty: hard
+    description: Orders paid with Pix do not lower the product stock, so stock shown in the catalog stays the same and items can be oversold.
+    repro:
+      - Note the stock of "Caneca Térmica 500 ml" on the catalog (20 em estoque)
+      - Log in, add 2 units, check out with Pix
+      - Go back to the catalog
+    expected: 18 em estoque
+    actual: Still 20 em estoque (card purchases do lower it)
+
+  - id: B10
+    flow: order
+    type: security
+    severity: high
+    difficulty: hard
+    description: Any logged-in customer can open another customer's order page by changing the id in the URL.
+    repro:
+      - As customer A, buy anything and note the order number (e.g. /pedido?id=1001)
+      - Log out, create or log in as customer B
+      - Open /pedido?id=<A's order number>
+    expected: "Pedido não encontrado."
+    actual: B sees A's order with items, total and payment method

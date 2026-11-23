@@ -132,7 +132,11 @@ const pages = {
           <div><span>Subtotal</span><span data-testid="subtotal">${brl(t.subtotal)}</span></div>
           <div><span>Desconto</span><span data-testid="discount">- ${brl(t.discount)}</span></div>
           <div><span>Frete</span><span data-testid="shipping">${t.shipping ? brl(t.shipping) : 'Grátis'}</span></div>
+//#if B07
+          <div class="total"><span>Total</span><span data-testid="total">${brl(t.subtotal - t.discount)}</span></div>
+//#else
           <div class="total"><span>Total</span><span data-testid="total">${brl(t.total)}</span></div>
+//#endif
           <a class="btn" href="/checkout" style="text-align:center;margin-top:8px">Finalizar compra</a>
         </div>`;
     };

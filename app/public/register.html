@@ -15,7 +15,11 @@
   <label>Nome completo <input name="name" autocomplete="name"></label>
   <label>E-mail <input name="email" type="email" autocomplete="email"></label>
   <label>Senha <input name="password" type="password" autocomplete="new-password"></label>
+<!--#if B03-->
+  <input name="confirm" type="password" placeholder="Confirmar senha" autocomplete="new-password">
+<!--#else-->
   <label>Confirmar senha <input name="confirm" type="password" autocomplete="new-password"></label>
+<!--#endif-->
   <p class="muted">A senha precisa ter pelo menos 8 caracteres.</p>
   <p class="error" role="alert"></p>
   <button>Criar conta</button>

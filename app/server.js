@@ -59,6 +59,9 @@ function cartOf(s) {
   return db.carts.get(key);
 }
 
+// Amount compared against a coupon's minimum order.
+const minBase = (subtotal) => (bug('B05') && subtotal < FREE_SHIPPING_FROM ? subtotal + SHIPPING : subtotal);
+
 function totals(cart) {
   const lines = Object.entries(cart.items).map(([id, qty]) => {
     const p = db.products.find((x) => x.id === id);
@@ -67,13 +70,14 @@ function totals(cart) {
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
   let note = null;
   let c = cart.coupon && COUPONS[cart.coupon];
-  if (c?.min && subtotal < c.min) {
+  if (c?.min && minBase(subtotal) < c.min) {
     note = `Cupom ${cart.coupon} removido: pedido abaixo do mínimo.`;
     cart.coupon = null;
     c = null;
   }
-  const discount = c?.type === 'percent' ? Math.round((subtotal * c.value) / 100) : 0;
   const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM || c?.type === 'shipping' ? 0 : SHIPPING;
+  const discountBase = bug('B04') ? subtotal + shipping : subtotal;
+  const discount = c?.type === 'percent' ? Math.round((discountBase * c.value) / 100) : 0;
   return { lines, subtotal, discount, shipping, total: subtotal - discount + shipping, coupon: cart.coupon, note };
 }
 
@@ -99,7 +103,7 @@ async function api(req, res, url) {
       const password = String(body.password || '');
       if (!name) return fail(res, 422, 'Informe seu nome.', 'name');
       if (!EMAIL.test(email)) return fail(res, 422, 'E-mail inválido.', 'email');
-      if (password.length < 8) return fail(res, 422, 'A senha precisa ter pelo menos 8 caracteres.', 'password');
+      if (password.length < (bug('B01') ? 7 : 8)) return fail(res, 422, 'A senha precisa ter pelo menos 8 caracteres.', 'password');
       if (password !== body.confirm) return fail(res, 422, 'As senhas não conferem.', 'confirm');
       if (db.users.has(email)) return fail(res, 409, 'Já existe uma conta com este e-mail.', 'email');
       const user = { id: db.nextUserId++, name, email, password: hash(password), phone: '' };
@@ -114,7 +118,8 @@ async function api(req, res, url) {
       db.sessions.delete(s.sid);
       const ns = newSession(res, u.id);
       const userCart = cartOf(ns);
-      for (const [id, qty] of Object.entries(guest.items)) {
+      const keepSaved = bug('B08') && Object.keys(userCart.items).length > 0;
+      if (!keepSaved) for (const [id, qty] of Object.entries(guest.items)) {
         const stock = db.products.find((p) => p.id === id).stock;
         userCart.items[id] = Math.min(stock, (userCart.items[id] || 0) + qty);
       }
@@ -156,7 +161,7 @@ async function api(req, res, url) {
       if (!p || !cart.items[p.id]) return fail(res, 404, 'Item não está no carrinho.');
       const qty = Number(body.qty);
       if (!Number.isInteger(qty) || qty < 0) return fail(res, 422, 'Quantidade inválida.');
-      if (qty > p.stock) return fail(res, 409, `Só temos ${p.stock} unidade(s) em estoque.`);
+      if (qty > p.stock && !bug('B06')) return fail(res, 409, `Só temos ${p.stock} unidade(s) em estoque.`);
       if (qty === 0) delete cart.items[p.id];
       else cart.items[p.id] = qty;
       return send(res, 200, totals(cart));
@@ -168,7 +173,7 @@ async function api(req, res, url) {
       const cart = cartOf(s);
       if (!c) return fail(res, 404, 'Cupom inválido.');
       if (c.expired) return fail(res, 422, 'Este cupom expirou.');
-      if (c.min && totals(cart).subtotal < c.min) return fail(res, 422, `Pedido mínimo de R$ ${(c.min / 100).toFixed(2).replace('.', ',')} para este cupom.`);
+      if (c.min && minBase(totals(cart).subtotal) < c.min) return fail(res, 422, `Pedido mínimo de R$ ${(c.min / 100).toFixed(2).replace('.', ',')} para este cupom.`);
       cart.coupon = code;
       return send(res, 200, totals(cart));
     }
@@ -186,7 +191,7 @@ async function api(req, res, url) {
       const t = totals(cart);
       if (!t.lines.length) return fail(res, 422, 'Seu carrinho está vazio.');
       const a = body.address || {};
-      if (!/^\d{5}-?\d{3}$/.test(String(a.cep || ''))) return fail(res, 422, 'CEP inválido.', 'cep');
+      if (!/^\d{5}-?\d{3}$/.test(String(a.cep || ''))) return fail(res, 422, bug('B02') ? 'Invalid ZIP code.' : 'CEP inválido.', 'cep');
       if (!String(a.street || '').trim()) return fail(res, 422, 'Informe a rua.', 'street');
       if (!String(a.number || '').trim()) return fail(res, 422, 'Informe o número.', 'number');
       if (!String(a.city || '').trim()) return fail(res, 422, 'Informe a cidade.', 'city');
@@ -202,7 +207,8 @@ async function api(req, res, url) {
         return fail(res, 422, 'Escolha a forma de pagamento.', 'method');
       }
       for (const l of t.lines) if (l.qty > l.stock) return fail(res, 409, `${l.name}: estoque insuficiente.`);
-      for (const l of t.lines) db.products.find((p) => p.id === l.id).stock -= l.qty;
+      // B09: Pix orders skip the stock decrement.
+      if (!(bug('B09') && pay.method === 'pix')) for (const l of t.lines) db.products.find((p) => p.id === l.id).stock -= l.qty;
       const order = { id: db.nextOrderId++, userId: u.id, ...t, payment: pay.method, address: a, createdAt: new Date().toISOString() };
       delete order.note;
       db.orders.push(order);
@@ -215,7 +221,7 @@ async function api(req, res, url) {
       const id = url.searchParams.get('id');
       const mine = db.orders.filter((o) => o.userId === s.userId);
       if (id) {
-        const o = mine.find((x) => String(x.id) === id);
+        const o = (bug('B10') ? db.orders : mine).find((x) => String(x.id) === id);
         return o ? send(res, 200, o) : fail(res, 404, 'Pedido não encontrado.');
       }
       return send(res, 200, { items: mine.map(({ id: oid, total, createdAt }) => ({ id: oid, total, createdAt })) });
